@@ -1,36 +1,106 @@
-let stopwatchInterval;
-let seconds = 0,
-  minutes = 0,
-  hours = 0;
+let startTime = 0;
+let elapsedTime = 0;
+let timerInterval = null;
+let isRunning = false;
 
-function updateStopwatch() {
-  seconds++;
-  if (seconds === 60) {
-    seconds = 0;
-    minutes++;
-    if (minutes === 60) {
-      minutes = 0;
-      hours++;
-    }
-  }
-  document.getElementById(
-    "stopwatch"
-  ).innerText = `${hours}:${minutes}:${seconds}`;
+function formatTime(milliseconds) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const ms = Math.floor((milliseconds % 1000) / 10);
+
+  return `${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}:${ms.toString().padStart(2, "0")}`;
+}
+
+function updateDisplay() {
+  document.getElementById("stopwatch").textContent = formatTime(elapsedTime);
 }
 
 function startStopwatch() {
-  clearInterval(stopwatchInterval);
-  stopwatchInterval = setInterval(updateStopwatch, 1000);
+  if (!isRunning) {
+    startTime = Date.now() - elapsedTime;
+    timerInterval = setInterval(() => {
+      elapsedTime = Date.now() - startTime;
+      updateDisplay();
+    }, 10);
+    isRunning = true;
+    document.getElementById("stopwatch").classList.add("running");
+
+    // Add visual feedback
+    createRipple(event);
+  }
 }
 
 function stopStopwatch() {
-  clearInterval(stopwatchInterval);
+  if (isRunning) {
+    clearInterval(timerInterval);
+    isRunning = false;
+    document.getElementById("stopwatch").classList.remove("running");
+
+    // Add visual feedback
+    createRipple(event);
+  }
 }
 
 function resetStopwatch() {
-  clearInterval(stopwatchInterval);
-  seconds = 0;
-  minutes = 0;
-  hours = 0;
-  document.getElementById("stopwatch").innerText = "00:00:00";
+  clearInterval(timerInterval);
+  isRunning = false;
+  elapsedTime = 0;
+  updateDisplay();
+  document.getElementById("stopwatch").classList.remove("running");
+
+  // Add visual feedback
+  createRipple(event);
+
+  // Add reset animation
+  const stopwatch = document.getElementById("stopwatch");
+  stopwatch.style.animation = "none";
+  setTimeout(() => {
+    stopwatch.style.animation = "";
+  }, 10);
 }
+
+function createRipple(event) {
+  if (!event) return;
+
+  const button = event.target;
+  const rect = button.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const x = event.clientX - rect.left - size / 2;
+  const y = event.clientY - rect.top - size / 2;
+
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+  ripple.style.width = ripple.style.height = size + "px";
+  ripple.style.left = x + "px";
+  ripple.style.top = y + "px";
+
+  button.appendChild(ripple);
+
+  setTimeout(() => {
+    ripple.remove();
+  }, 600);
+}
+
+// Initialize the display
+updateDisplay();
+
+// Add keyboard shortcuts
+document.addEventListener("keydown", (event) => {
+  switch (event.code) {
+    case "Space":
+      event.preventDefault();
+      if (isRunning) {
+        stopStopwatch();
+      } else {
+        startStopwatch();
+      }
+      break;
+    case "KeyR":
+      event.preventDefault();
+      resetStopwatch();
+      break;
+  }
+});
